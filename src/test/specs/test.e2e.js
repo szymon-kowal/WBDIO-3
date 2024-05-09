@@ -1,31 +1,87 @@
-import { browser, $ } from '@wdio/globals';
+import { browser } from '@wdio/globals';
 import { expect } from 'chai';
 import IndexPage from '../../p-o/pages/index.page.js';
-import Helpers from '../../p-o/helpers/helpers.js';
 import PricingCalculatorPage from '../../p-o/pages/pricingCalculator.page.js';
 import CostSummaryPage from '../../p-o/pages/costSummary.page.js';
+import SearchResultPage from '../../p-o/pages/searchResult.page.js';
+import { baseTestData } from '../../p-o/test-data/baseTestData.js';
+import Helpers from '../../p-o/helpers/helpers.js';
 
 const indexPage = new IndexPage();
+const searchResultPage = new SearchResultPage();
 const pricingCalculatorPage = new PricingCalculatorPage();
 const costSummaryPage = new CostSummaryPage();
 
 describe('Google Cloud Platform Pricing Calculator', () => {
     beforeEach(async () => {
         await indexPage.open();
+        // await browser.url(
+        //     'https://cloud.google.com/products/calculator/estimate-preview/38178ac1-1bc7-4af5-b680-998970edec73?hl=en'
+        // );
         await indexPage.removePopups();
     });
 
+    it('should open the index page and confirm the search bar is functional @Smoke', async () => {
+        expect(await browser.getUrl()).to.be.equal('https://cloud.google.com/');
+        await indexPage.header.searchBar.click();
+        await indexPage.header.searchBar.setValue(
+            'Google Cloud Platform Pricing Calculator'
+        );
+        browser.keys('Enter');
+
+        // Verify if search results are displayed
+        expect(await searchResultPage.rootEl.isDisplayed()).to.be.true;
+    });
+    it('should navigate to the pricing calculator page from search results @Smoke', async () => {
+        // Navigate to index and perform search first
+        await indexPage.header.searchBar.click();
+        await indexPage.header.searchBar.setValue(
+            'Google Cloud Platform Pricing Calculator'
+        );
+        browser.keys('Enter');
+
+        await searchResultPage
+            .findByString('Google Cloud Pricing Calculator')
+            .click();
+        // Confirm that the pricing calculator is displayed
+        expect(await pricingCalculatorPage.midFirstComp.rootEl.isDisplayed()).to
+            .be.true;
+    });
+
+    it('should confirm the interaction with "Add to estimate" is functional @Smoke', async () => {
+        // Assuming user has navigated to the Pricing Calculator
+        await indexPage.header.searchBar.click();
+        await indexPage.header.searchBar.setValue(
+            'Google Cloud Platform Pricing Calculator'
+        );
+        browser.keys('Enter');
+        await searchResultPage
+            .findByString('Google Cloud Pricing Calculator')
+            .click();
+
+        // Wait for and click the 'Add to estimate' button
+        await Helpers.waitUntilHelper(
+            pricingCalculatorPage.midFirstComp.findByString('Add to estimate')
+        );
+        await pricingCalculatorPage.midFirstComp
+            .findByString('Add to estimate')
+            .click();
+
+        // Check that the modal or next actionable item after clicking 'Add to estimate' appears
+
+        await Helpers.waitUntilHelper(
+            pricingCalculatorPage.addToEstimateModal.rootEl
+        );
+
+        expect(
+            await pricingCalculatorPage.addToEstimateModal.rootEl.isDisplayed()
+        ).to.be.true;
+    });
+
     it('should calculate the cost for specific compute engine settings', async () => {
-        // // Open the Google Cloud page
-        // await browser.url('https://cloud.google.com/');
-
-        // browser.pause(2000);
-        // await $('//*[@id="glue-cookie-notification-bar-1"]/button').click();
-
-        // "Google Cloud Platform Pricing Calculator" and perform the search
-
-        await indexPage.searchBar.click();
-        await indexPage.searchBar.setValue(
+        const testData = baseTestData;
+        await indexPage.header.searchBar.click();
+        await indexPage.header.searchBar.setValue(
             'Google Cloud Platform Pricing Calculator'
         );
 
@@ -33,176 +89,189 @@ describe('Google Cloud Platform Pricing Calculator', () => {
 
         // Navigate to the Pricing Calculator
 
-        await $(
-            Helpers.findByTextWithXPath('Google Cloud Pricing Calculator')
-        ).click();
+        await searchResultPage
+            .findByString('Google Cloud Pricing Calculator')
+            .click();
 
-        await browser.waitUntil(
-            async () => {
-                return await pricingCalculatorPage.addToEstimateBtn.isDisplayed();
-            },
-            {
-                timeout: 5000,
-                timeoutMsg: 'Expected btn to be displayed after 5 seconds',
-            }
+        await Helpers.waitUntilHelper(
+            pricingCalculatorPage.midFirstComp.findByString('Add to estimate')
         );
-        await pricingCalculatorPage.addToEstimateBtn.click();
+
+        await pricingCalculatorPage.midFirstComp
+            .findByString('Add to estimate')
+            .click();
 
         // Select COMPUTE ENGINE
 
-        await browser.waitUntil(
-            async () => {
-                return await pricingCalculatorPage.computeEngineBtn.isDisplayed();
-            },
-            {
-                timeout: 5000,
-                timeoutMsg: 'Expected text to be displayed after 5 seconds',
-            }
+        await Helpers.waitUntilHelper(
+            pricingCalculatorPage.addToEstimateModal.getComputeEngineBtn
         );
-        await (await pricingCalculatorPage.computeEngineBtn).click();
+
+        await pricingCalculatorPage.addToEstimateModal.getComputeEngineBtn.click();
         // Fill out the form
 
-        //         Number of instances: 4
-        await pricingCalculatorPage.numberOfInstancesInput.setValue('4');
+        // Number of instances: 4
+        await pricingCalculatorPage.computeEngineForm.getNumberOfInstancesInput.setValue(
+            testData.numberOfInstances
+        );
         //    * What are these instances for?: leave blank
         //    * Operating System / Software: Free: Debian, CentOS, CoreOS, Ubuntu, or another User-Provided OS
-        await pricingCalculatorPage.operatingSystemSoftwareInput.click();
-        await browser.waitUntil(
-            async () => {
-                return await pricingCalculatorPage
-                    .operatingSystemSoftwareOptions(
-                        'free-debian-centos-coreos-ubuntu-or-byol-bring-your-own-license'
-                    )
-                    .isDisplayed();
-            },
-            {
-                timeout: 5000,
-                timeoutMsg: 'Expected option to be displayed after 5 seconds',
-            }
-        );
-        await pricingCalculatorPage
-            .operatingSystemSoftwareOptions(
-                'free-debian-centos-coreos-ubuntu-or-byol-bring-your-own-license'
+        await pricingCalculatorPage.computeEngineForm.getOperatingSystemSoftwareInput.click();
+
+        await Helpers.waitUntilHelper(
+            pricingCalculatorPage.computeEngineForm.getOperatingSystemSoftwareOption(
+                testData.operatingSystemSoftware
             )
+        );
+
+        await pricingCalculatorPage.computeEngineForm
+            .getOperatingSystemSoftwareOption(testData.operatingSystemSoftware)
             .click();
 
         //    * Provisioning model: Regular
 
-        (await pricingCalculatorPage.provisioningModelRegularBtn).click();
+        await pricingCalculatorPage.computeEngineForm
+            .getProvisioningModelOption(testData.provisioningModel)
+            .waitForClickable();
+        await pricingCalculatorPage.computeEngineForm
+            .getProvisioningModelOption(testData.provisioningModel)
+            .click();
 
         //    * Machine Family: General purpose
 
-        await pricingCalculatorPage.machineFamilyInput.click();
-        await pricingCalculatorPage
-            .machineFamilySelectOption('general-purpose')
+        await pricingCalculatorPage.computeEngineForm.getMachineFamilyInput.click();
+        await pricingCalculatorPage.computeEngineForm
+            .getMachineFamilyOption(testData.machineFamily)
             .waitForClickable();
-        await pricingCalculatorPage
-            .machineFamilySelectOption('general-purpose')
+        await pricingCalculatorPage.computeEngineForm
+            .getMachineFamilyOption(testData.machineFamily)
             .click();
-        // await $('//*[@data-value="general-purpose"]').click();
 
         //    * Series: N1
 
-        await pricingCalculatorPage.seriesInput.click();
-        await pricingCalculatorPage.seriesSelectOption('n1').click();
+        await pricingCalculatorPage.computeEngineForm.getSeriesInput.click();
+        await pricingCalculatorPage.computeEngineForm
+            .getSeriesOption(testData.series)
+            .click();
 
         //    * Machine type: n1-standard-8 (vCPUs: 8, RAM: 30 GB)
 
-        await pricingCalculatorPage.machineTypeInput.click();
+        await pricingCalculatorPage.computeEngineForm.getMachineTypeInput.click();
 
-        await pricingCalculatorPage
-            .machineTypeSelectOption('n1-standard-8')
+        await pricingCalculatorPage.computeEngineForm
+            .getMachineTypeOption(testData.machineType)
             .click();
-        // await $('//*[@aria-describedby="c32"]').click();
-        // await $('[data-value="n1-standard-8"]').click();
 
         //    * Select “Add GPUs“
 
-        await pricingCalculatorPage.AddGpusBtn.click();
+        await pricingCalculatorPage.computeEngineForm.getAddGpusBtn.click();
 
         //     * GPU type: NVIDIA Tesla V100
 
-        await browser.waitUntil(
-            async () => {
-                return await pricingCalculatorPage.gpuModelInput.isDisplayed();
-            },
-            {
-                timeout: 5000,
-                timeoutMsg:
-                    'Expected dpuModelInput to be displayed after 5 seconds',
-            }
+        await Helpers.waitUntilHelper(
+            pricingCalculatorPage.computeEngineForm.getGpuModelInput
         );
-        await pricingCalculatorPage.gpuModelInput.click();
-        await pricingCalculatorPage
-            .gpuModelSelectOption('nvidia-tesla-v100')
+
+        await pricingCalculatorPage.computeEngineForm.getGpuModelInput.click();
+
+        await Helpers.waitUntilHelper(
+            pricingCalculatorPage.computeEngineForm.getGpuModelOption(
+                testData.gpuModel
+            )
+        );
+
+        await pricingCalculatorPage.computeEngineForm
+            .getGpuModelOption(testData.gpuModel)
             .click();
-        // //            * Number of GPUs: 1
-        (await pricingCalculatorPage.numberOfGPUsInput).click();
-        await pricingCalculatorPage.numberOfGPUsSelectOption('1');
+        //      * Number of GPUs: 1
+        await pricingCalculatorPage.computeEngineForm.getNumberOfGPUsInput.click();
+        await pricingCalculatorPage.computeEngineForm
+            .getNumberOfGPUsOption(testData.numberOfGPUs)
+            .click();
 
-        // await $('//*[@data-field-type="174"]').click();
-        // await $('//*[@aria-label="Number of GPUs"]/*[@data-value="1"]').click();
+        //    * Local SSD: 2x375 Gb
 
-        // //    * Local SSD: 2x375 Gb
-        await pricingCalculatorPage.localSSDInput.click();
-        await pricingCalculatorPage.localSSDSelectOption('2').click();
+        await pricingCalculatorPage.computeEngineForm.getLocalSSDInput.click();
+        await pricingCalculatorPage.computeEngineForm
+            .getLocalSSDOption(testData.localSSD)
+            .click();
+        //    * Datacenter location: Frankfurt (europe-west3) - changed to Netherlands (europe-west4)
 
-        // //    * Datacenter location: Frankfurt (europe-west3) - changed to Netherlands (europe-west4)
+        await pricingCalculatorPage.computeEngineForm.getRegionInput.click();
 
-        await pricingCalculatorPage.regionInput.click();
+        await pricingCalculatorPage.computeEngineForm
+            .getRegionSelectOption(testData.regionSelect)
+            .click();
 
-        await pricingCalculatorPage.regionSelectOption('europe-west4').click();
-        // await $('//*[@data-field-type="115"]').click();
-        // await $('[data-value="europe-west4"]').click();
-        // //    * Committed usage: 1 Year
-        await pricingCalculatorPage.select1YearCommittedUse.click();
+        //    * Committed usage: 1 Year
+        await pricingCalculatorPage.computeEngineForm
+            .getCommitedUseDiscountOption(testData.commitedUseDiscount)
+            .click();
 
-        // // Check the price
+        // Share and open estimate summary
 
-        // Wait for updated price - idk how i can wait for final value displayed
-        await browser.pause(2000);
-
-        const priceLabel = await pricingCalculatorPage.estimatedPriceWithLabel;
-        const priceText = await priceLabel.getText();
-        // expect($($('//*[contains(text(), "$5,628.90")]'))).toBeDisplayed();
-
-        // // Share and open estimate summary
-
-        await pricingCalculatorPage.shareEstimatedCostBtn.click();
-        await browser.waitUntil(
-            async () => {
-                return await $(
-                    Helpers.findByTextWithXPath('Open estimate summary')
-                ).isDisplayed();
-            },
-            {
-                timeout: 5000,
-                timeoutMsg:
-                    'Expected "Open estimate summary" to be displayed after 5 seconds',
-            }
+        await Helpers.waitUntilHelper(
+            pricingCalculatorPage.costDetailPanel.getShareEstimatedCostBtn
         );
 
-        $(Helpers.findByTextWithXPath('Open estimate summary')).click();
+        // Need for correctly click btn idk why
+        await browser.pause(1000);
+
+        await pricingCalculatorPage.costDetailPanel.getShareEstimatedCostBtn.click();
+
+        await Helpers.waitUntilHelper(
+            pricingCalculatorPage.shareEstimatePopup.findByString(
+                'Open estimate summary'
+            )
+        );
+
+        await pricingCalculatorPage.shareEstimatePopup
+            .findByString('Open estimate summary')
+            .click();
 
         // 2nd tab
         await browser.pause(1000);
         const handles = await browser.getWindowHandles();
         await browser.switchToWindow(handles[handles.length - 1]);
 
-        await browser.waitUntil(
-            async () => {
-                return await costSummaryPage.totalEstimatedCostValue.isDisplayed();
-            },
-            {
-                timeout: 5000,
-                timeoutMsg:
-                    'Expected //h4[contains(text(), "$")] to be displayed after 5 seconds',
-            }
+        await Helpers.waitUntilHelper(
+            costSummaryPage.totalCostModal.getTotalEstimatedCostValue
         );
-        const sharedPageCostSelector =
-            await costSummaryPage.totalEstimatedCostValue;
-        const sharedPageCost = await sharedPageCostSelector.getText();
+
         // Step 11: Verify the summary
-        expect(sharedPageCost).to.equal(priceText);
+
+        const numberOfInstances =
+            await costSummaryPage.selectedOptions.getNumberOfInstancesValue.getText();
+        const operatingSystemSoftware =
+            await costSummaryPage.selectedOptions.getOperatingSystemSoftwareValue.getText();
+        const provisioningModel =
+            await costSummaryPage.selectedOptions.getProvisioningModelValue.getText();
+        const machineType =
+            await costSummaryPage.selectedOptions.getMachineTypeValue.getText();
+        const gpuModel =
+            await costSummaryPage.selectedOptions.getGPUModelValue.getText();
+        const numberOfGPUs =
+            await costSummaryPage.selectedOptions.getNumberOfGPUsValue.getText();
+        const localSSD =
+            await costSummaryPage.selectedOptions.getLocalSSDValue.getText();
+        const regionSelect =
+            await costSummaryPage.selectedOptions.getRegionSelectValue.getText();
+        const commitedUseDiscount =
+            await costSummaryPage.selectedOptions.getCommitedUseDiscountValue.getText();
+
+        expect(numberOfInstances).to.equal(
+            testData.numberOfInstances.toString()
+        );
+        expect(operatingSystemSoftware).to.equal(
+            testData.operatingSystemSoftware
+        );
+        expect(provisioningModel).to.equal(testData.provisioningModel);
+        // expect(machineFamily).to.equal(testData.machineFamily);
+        expect(machineType.split(',')[0].trim()).to.equal(testData.machineType);
+        expect(gpuModel).to.equal(testData.gpuModel);
+        expect(numberOfGPUs).to.equal(testData.numberOfGPUs);
+        expect(localSSD).to.equal(testData.localSSD);
+        expect(regionSelect).to.equal(testData.regionSelect);
+        expect(commitedUseDiscount).to.equal(testData.commitedUseDiscount);
     });
 });

@@ -1,3 +1,6 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
+import fs from 'fs';
 export const config = {
     //
     // ====================
@@ -25,6 +28,7 @@ export const config = {
     exclude: [
         // 'path/to/excluded/files'
     ],
+
     //
     // ============
     // Capabilities
@@ -147,6 +151,14 @@ export const config = {
      */
     // onPrepare: function (config, capabilities) {
     // },
+
+    onPrepare: function () {
+        const dir = './screenshots';
+
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+    },
     /**
      * Gets executed before a worker process is spawned and can be used to initialize specific service
      * for that worker as well as modify runtime environments in an async fashion.
@@ -228,7 +240,20 @@ export const config = {
      */
     // afterTest: function(test, context, { error, result, duration, passed, retries }) {
     // },
-
+    afterTest: function (
+        test,
+        context,
+        { error, result, duration, passed, retries }
+    ) {
+        if (!passed) {
+            const timestamp = new Date().toISOString();
+            browser.saveScreenshot(
+                `./screenshots/${new Date()
+                    .toISOString()
+                    .replace(/:/g, '-')}.png`
+            );
+        }
+    },
     /**
      * Hook that gets executed after the suite has ended
      * @param {object} suite suite details

@@ -1,7 +1,13 @@
 import { $ } from '@wdio/globals';
 import DefaultPage from '../basic.page.js';
+import CommonHeader from '../components/common/commonHeader.component.js';
 
 export default class IndexPage extends DefaultPage {
+    constructor() {
+        super();
+        this.header = new CommonHeader();
+    }
+
     async open() {
         await super.open('https://cloud.google.com/');
     }
